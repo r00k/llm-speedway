@@ -62,12 +62,19 @@ class ServiceManager:
         data_dir.mkdir(exist_ok=True)
         env["DATA_DIR"] = str(data_dir)
         
+        # Disable Flask/Werkzeug reloader and debug mode to prevent
+        # restarts when test framework creates cache files
+        env["FLASK_DEBUG"] = "0"
+        env["FLASK_ENV"] = "production"
+        env["WERKZEUG_RUN_MAIN"] = "true"
+        
         self._process = subprocess.Popen(
             ["bash", "run.sh"],
             cwd=self.workspace_dir,
             env=env,
             stdout=self._stdout_file,
             stderr=self._stderr_file,
+            start_new_session=True,  # Isolate from parent signals
         )
         
         return self._wait_for_ready()
@@ -96,12 +103,19 @@ class ServiceManager:
     def stop(self):
         """Stop the service."""
         if self._process:
-            # Try graceful shutdown first
-            self._process.terminate()
+            # Try graceful shutdown first - send to process group
+            try:
+                os.killpg(self._process.pid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError):
+                pass
             try:
                 self._process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                self._process.kill()
+                # Force kill the process group
+                try:
+                    os.killpg(self._process.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
                 self._process.wait()
             self._process = None
         
@@ -118,3 +132,9 @@ class ServiceManager:
         if self._process is None:
             return False
         return self._process.poll() is None
+    
+    def get_exit_code(self) -> Optional[int]:
+        """Get the exit code if the process has terminated."""
+        if self._process is None:
+            return None
+        return self._process.poll()

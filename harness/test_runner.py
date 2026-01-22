@@ -20,6 +20,7 @@ class TestResult:
     tests_failed: int = 0
     tests_total: int = 0
     failed_tests: list[str] = None
+    error_message: str = None
     
     def __post_init__(self):
         if self.failed_tests is None:
@@ -80,6 +81,7 @@ class TestRunner:
         # Parse test counts and failed test names from pytest output
         tests_passed, tests_failed, tests_total = self._parse_pytest_output(stdout)
         failed_tests = self._parse_failed_tests(stdout)
+        error_message = self._extract_error_message(stdout) if exit_code != 0 else None
         
         # Save logs
         if run_dir:
@@ -95,6 +97,7 @@ class TestRunner:
             tests_failed=tests_failed,
             tests_total=tests_total,
             failed_tests=failed_tests,
+            error_message=error_message,
         )
     
     def _parse_pytest_output(self, output: str) -> tuple[int, int, int]:
@@ -126,3 +129,18 @@ class TestRunner:
             failed_tests.append(match.group(1))
         
         return failed_tests
+    
+    def _extract_error_message(self, output: str) -> str:
+        """Extract the key error message from pytest output."""
+        import re
+        
+        # Look for the "E   " error lines that pytest outputs
+        error_lines = []
+        for line in output.split('\n'):
+            if line.startswith('E   '):
+                error_lines.append(line[4:].strip())
+        
+        if error_lines:
+            return error_lines[-1]
+        
+        return None

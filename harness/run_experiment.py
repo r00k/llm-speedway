@@ -97,21 +97,40 @@ def run_single_experiment(
         test_runner = TestRunner(task, service.base_url)
         test_result = test_runner.run(run_dir=run_dir)
         
+        # Check if service crashed during tests
+        service_crashed = not service.is_running()
+        service_exit_code = service.get_exit_code()
+        
     finally:
         service.stop()
     
     timer.stop()
     
-    status = "pass" if test_result.passed else "fail"
+    # Determine status and error message
+    if service_crashed and not test_result.passed:
+        status = "error"
+        error_message = f"Service crashed during tests (exit code: {service_exit_code})"
+        if test_result.error_message:
+            error_message += f" - {test_result.error_message}"
+    elif test_result.passed:
+        status = "pass"
+        error_message = None
+    else:
+        status = "fail"
+        error_message = test_result.error_message
+    
     result = ExperimentResult(
         run_id=run_id, task=task, agent=agent_name, model=model,
         prompt_variant=prompt_variant, status=status, duration_sec=timer.elapsed(),
+        error_message=error_message,
     )
     save_run_result(run_id, result)
     
     print(f"\n{'='*60}")
-    print(f"{status.upper()} — {timer.elapsed()}s")
-    if test_result.failed_tests:
+    print(f"{status.upper()} — {timer.elapsed():.2f}s")
+    if test_result.error_message:
+        print(f"\n{test_result.error_message}")
+    elif test_result.failed_tests:
         print(f"\nFailed tests:")
         for test_name in test_result.failed_tests:
             print(f"  • {test_name}")
