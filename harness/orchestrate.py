@@ -14,16 +14,26 @@ MAX_CONCURRENT = 18  # Max parallel tmux sessions
 
 
 def generate_experiment_id(task: str, agent: str, model: str, language: str | None, constraints: list[str] | None) -> str:
-    """Generate a unique experiment ID."""
+    """Generate a unique experiment ID with hash suffix for collision resistance."""
+    import hashlib
+    import uuid
+    
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     # Sanitize for tmux session names (no periods or special chars)
-    safe_model = model.replace("-", "").replace(".", "_")
-    safe_agent = agent.replace("-", "")
-    parts = [timestamp, task, safe_agent, safe_model]
+    safe_model = model.replace("-", "").replace(".", "_")[:12]
+    safe_agent = agent.replace("-", "")[:8]
+    safe_task = task[:12]
+    
+    # Build readable prefix
+    parts = [timestamp, safe_task, safe_agent, safe_model]
     if language:
-        parts.append(language.lower())
-    if constraints:
-        parts.append("constrained")
+        parts.append(language.lower()[:4])
+    
+    # Hash all params + uuid for guaranteed uniqueness
+    hash_input = f"{task}:{agent}:{model}:{language}:{constraints}:{uuid.uuid4()}"
+    unique_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:8]
+    parts.append(unique_hash)
+    
     return "_".join(parts)[:80]
 
 
@@ -53,7 +63,8 @@ def start_experiment(
     exp_id = generate_experiment_id(task, agent, model, language, constraints)
     session_name = f"bench_{exp_id}"
     
-    # Build command
+    # Build command with proper quoting
+    import shlex
     cmd_parts = [
         "uv", "run", "python", "-m", "harness.run_experiment",
         "--task", task,
@@ -65,7 +76,7 @@ def start_experiment(
     for c in constraints or []:
         cmd_parts.extend(["--constraint", c])
     
-    cmd = " ".join(cmd_parts)
+    cmd = shlex.join(cmd_parts)
     
     # Create log directory
     log_dir = RUNS_DIR / f"orchestrated_{exp_id}"
