@@ -7,17 +7,23 @@ Benchmark harness for timing agentic coding tools. Measures end-to-end time for 
 ```bash
 uv sync
 
-# Test Codex 5.2
+# Test Amp (smart mode)
+uv run python -m harness.run_experiment \
+  --task conference-scheduler \
+  --agent amp \
+  --model smart
+
+# Test Claude Code
+uv run python -m harness.run_experiment \
+  --task conference-scheduler \
+  --agent claude-code \
+  --model claude-sonnet-4
+
+# Test Codex CLI
 uv run python -m harness.run_experiment \
   --task issue-tracker \
   --agent codex \
-  --model codex-5.2
-
-# Test Claude Code (Opus 4.5)
-uv run python -m harness.run_experiment \
-  --task issue-tracker \
-  --agent claude-code \
-  --model opus-4.5
+  --model o3
 ```
 
 ## How It Works
@@ -27,6 +33,22 @@ uv run python -m harness.run_experiment \
 3. Harness starts the service via `./run.sh`
 4. Black-box HTTP tests verify correctness
 5. End-to-end time recorded to `results/results.jsonl`
+
+## Agents
+
+| Agent | CLI | Model Examples |
+|-------|-----|----------------|
+| `amp` | `amp -x` | `smart`, `free`, `rush` |
+| `claude-code` | `claude` | `claude-sonnet-4`, `claude-opus-4` |
+| `codex` | `codex` | `o3`, `o4-mini` |
+
+## Tasks
+
+| Task | Description |
+|------|-------------|
+| `conference-scheduler` | Constraint satisfaction REST API (~10 hard constraints) |
+| `issue-tracker` | CRUD REST API with labels, comments, projects |
+| `smoke` | Minimal health-check endpoint (for testing harness) |
 
 ## Prompt Variants
 
@@ -42,16 +64,19 @@ Run experiments with different constraints:
 ## Results
 
 ```json
-{"agent": "codex", "model": "codex-5.2", "status": "pass", "duration_sec": 342.5}
-{"agent": "claude-code", "model": "opus-4.5", "status": "pass", "duration_sec": 287.3}
+{"agent": "amp", "model": "smart", "task": "conference-scheduler", "status": "pass", "duration_sec": 287.3}
+{"agent": "claude-code", "model": "claude-sonnet-4", "task": "issue-tracker", "status": "pass", "duration_sec": 342.5}
 ```
 
 ## Structure
 
 ```
-harness/          # Runner + agent adapters
-prompts/          # System prompt variants  
-tasks/            # Benchmark specs + tests
-  issue-tracker/  # ~2000 LOC REST API task
-runs/             # Execution logs
+harness/                    # Runner + agent adapters
+prompts/                    # System prompt variants  
+tasks/                      # Benchmark specs + tests
+  conference-scheduler/     # Constraint satisfaction problem
+  issue-tracker/            # CRUD REST API
+  smoke/                    # Minimal test task
+runs/                       # Execution logs
+results/                    # Results JSONL
 ```
