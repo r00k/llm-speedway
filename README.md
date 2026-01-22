@@ -89,14 +89,17 @@ uv run python -m harness.run_experiment \
 
 ## Self-Testing Mode
 
-Tasks can require models to write their own tests instead of providing a test suite.
+Require models to write their own tests instead of providing a test suite:
 
-Set `mode: self-testing` in a task's `harness.yaml`:
+```bash
+uv run python -m harness.run_experiment \
+  --task conference-scheduler \
+  --agent amp \
+  --model smart \
+  --self-testing
 
-```yaml
-port: 8080
-timeout_minutes: 90
-mode: self-testing
+# Or with run_all
+uv run python -m harness.run_all --task smoke --self-testing --parallel
 ```
 
 In this mode:

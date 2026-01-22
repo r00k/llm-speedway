@@ -23,7 +23,6 @@ class TaskConfig:
     healthz_path: str = "/healthz"
     healthz_timeout_sec: int = 120
     spec_file: str = "SPEC.md"
-    mode: str = "standard"  # "standard" or "self-testing"
     template_vars: dict = field(default_factory=dict)
     starter_files: list = field(default_factory=list)
     

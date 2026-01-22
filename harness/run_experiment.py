@@ -21,6 +21,7 @@ def run_single_experiment(
     model: str,
     language: str | None = None,
     constraints: list[str] | None = None,
+    self_testing: bool = False,
     verbose: bool = False,
 ) -> ExperimentResult:
     """Run a single experiment and return the result."""
@@ -29,11 +30,12 @@ def run_single_experiment(
     task_config = TaskConfig.load(task)
     spec = get_spec(task, language=language)
     system_prompt = get_system_prompt(language=language, constraints=constraints)
-    contract = get_task_wrapper(mode=task_config.mode)
+    mode = "self-testing" if self_testing else "standard"
+    contract = get_task_wrapper(mode=mode)
     
     # Build variant label for run ID
     parts = []
-    if task_config.mode == "self-testing":
+    if self_testing:
         parts.append("selftest")
     if language:
         parts.append(language.lower())
@@ -43,7 +45,7 @@ def run_single_experiment(
     
     # Create workspace
     run_id = create_run_id(task, agent_name, model, variant_label)
-    workspace_dir = create_workspace(task, run_id, mode=task_config.mode)
+    workspace_dir = create_workspace(task, run_id, mode=mode)
     run_dir = get_run_dir(run_id)
     
     print(f"\n{'='*60}")
@@ -186,6 +188,8 @@ def main():
     parser.add_argument("--language", help="Force a specific language (e.g., Python, Rust, Go)")
     parser.add_argument("--constraint", action="append", dest="constraints", 
                         help="Add a constraint (can be repeated)")
+    parser.add_argument("--self-testing", action="store_true",
+                        help="Model writes own tests (no test suite provided)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     
     args = parser.parse_args()
@@ -196,6 +200,7 @@ def main():
         model=args.model,
         language=args.language,
         constraints=args.constraints,
+        self_testing=args.self_testing,
         verbose=args.verbose,
     )
     

@@ -1,0 +1,13 @@
+port: 8080
+timeout_minutes: 60
+healthz_path: /healthz
+healthz_timeout_sec: 120
+spec_file: SPEC.md
+
+# Template variable for target language
+template_vars:
+  LANGUAGE: "{{language}}"  # Populated from --language flag
+
+# Files to copy into the working directory
+starter_files:
+  - starter/rate_limiter.py

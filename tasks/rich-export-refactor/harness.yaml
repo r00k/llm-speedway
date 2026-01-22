@@ -1,0 +1,23 @@
+type: refactor
+timeout_minutes: 45
+spec_file: SPEC.md
+
+# Source repository to clone
+source:
+  repo: https://github.com/Textualize/rich.git
+  ref: v14.0.0
+
+# Setup commands run before the agent starts
+setup:
+  - uv venv
+  - uv pip install -e "." pytest attrs
+
+# Verification commands
+verify:
+  # Structural verification
+  structural:
+    - python tests/verify_structure.py
+  
+  # Behavioral verification (existing tests must pass)
+  behavioral:
+    - pytest tests/test_console.py -v

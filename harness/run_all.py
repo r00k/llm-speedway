@@ -13,7 +13,7 @@ AGENTS = [
 ]
 
 
-def run_experiment(task: str, agent: str, model: str, language: str | None, constraints: list[str] | None) -> tuple[str, bool]:
+def run_experiment(task: str, agent: str, model: str, language: str | None, constraints: list[str] | None, self_testing: bool = False) -> tuple[str, bool]:
     """Run a single experiment, return (agent, success)."""
     cmd = [
         sys.executable, "-m", "harness.run_experiment",
@@ -25,6 +25,8 @@ def run_experiment(task: str, agent: str, model: str, language: str | None, cons
         cmd.extend(["--language", language])
     for c in constraints or []:
         cmd.extend(["--constraint", c])
+    if self_testing:
+        cmd.append("--self-testing")
     
     print(f"Starting: {agent}/{model}")
     result = subprocess.run(cmd, capture_output=False)
@@ -41,6 +43,8 @@ def main():
                         help="Run agents in parallel")
     parser.add_argument("--agents", nargs="+", 
                         help="Specific agents to run (default: all)")
+    parser.add_argument("--self-testing", action="store_true",
+                        help="Model writes own tests (no test suite provided)")
     
     args = parser.parse_args()
     
@@ -55,12 +59,14 @@ def main():
         print(f"Language: {args.language}")
     if args.constraints:
         print(f"Constraints: {', '.join(args.constraints)}")
+    if args.self_testing:
+        print("Mode: self-testing (model writes own tests)")
     print(f"{'='*60}\n")
     
     if args.parallel:
         with ThreadPoolExecutor(max_workers=len(agents_to_run)) as executor:
             futures = {
-                executor.submit(run_experiment, args.task, agent, model, args.language, args.constraints): agent
+                executor.submit(run_experiment, args.task, agent, model, args.language, args.constraints, args.self_testing): agent
                 for agent, model in agents_to_run
             }
             for future in as_completed(futures):
@@ -69,7 +75,7 @@ def main():
                 print(f"{status} {agent} completed")
     else:
         for agent, model in agents_to_run:
-            run_experiment(args.task, agent, model, args.language, args.constraints)
+            run_experiment(args.task, agent, model, args.language, args.constraints, args.self_testing)
 
 
 if __name__ == "__main__":
