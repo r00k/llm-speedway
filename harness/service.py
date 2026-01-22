@@ -66,7 +66,6 @@ class ServiceManager:
         # restarts when test framework creates cache files
         env["FLASK_DEBUG"] = "0"
         env["FLASK_ENV"] = "production"
-        env["WERKZEUG_RUN_MAIN"] = "true"
         
         self._process = subprocess.Popen(
             ["bash", "run.sh"],
