@@ -90,10 +90,6 @@ class TestComplexSchedules:
         # All 25 sessions scheduled
         assert len(result["schedule"]) == 25
 
-        # Score exists and is reasonable
-        assert "score" in result
-        assert result["score"] > 0
-
     def test_tight_constraints_barely_feasible(self, client, validator):
         """Tightly constrained problem that's just barely feasible."""
         # 6 sessions, 2 rooms, 3 slots = exactly enough combinations

@@ -1,10 +1,10 @@
 # Conference Scheduler Specification
 
-Build a REST API that generates optimal schedules for a tech conference. Given rooms, sessions, speakers, and attendees with various constraints, produce a valid schedule that maximizes attendee satisfaction.
+Build a REST API that generates valid schedules for a tech conference. Given rooms, sessions, speakers, and attendees with various constraints, produce a schedule that satisfies all constraints.
 
 ## Overview
 
-The scheduler receives conference data via POST and returns a schedule assigning each session to a room and time slot. The solution must satisfy all **hard constraints** (or be rejected) and is scored on how well it satisfies **soft constraints**.
+The scheduler receives conference data via POST and returns a schedule assigning each session to a room and time slot. The solution must satisfy all **hard constraints** or be rejected as infeasible.
 
 ---
 
@@ -21,8 +21,7 @@ Generate a schedule for the given conference data.
   "sessions": [...],
   "speakers": [...],
   "attendees": [...],
-  "time_slots": [...],
-  "config": {...}
+  "time_slots": [...]
 }
 ```
 
@@ -34,13 +33,7 @@ Generate a schedule for the given conference data.
     {"session_id": "S1", "room_id": "R1", "time_slot": "09:00"},
     {"session_id": "S2", "room_id": "R2", "time_slot": "09:00"},
     ...
-  ],
-  "score": 850,
-  "score_breakdown": {
-    "attendee_satisfaction": 500,
-    "speaker_convenience": 200,
-    "room_utilization": 150
-  }
+  ]
 }
 ```
 
@@ -81,7 +74,7 @@ Health check endpoint.
   "id": "string",
   "name": "string",
   "capacity": "integer (1-10000)",
-  "amenities": ["array of strings"]
+  "amenities": ["array of strings (default: [])"]
 }
 ```
 
@@ -92,12 +85,12 @@ Health check endpoint.
 {
   "id": "string",
   "title": "string",
-  "duration_minutes": "integer (15-480, must align with slot boundaries)",
+  "duration_minutes": "integer (15-480)",
   "speaker_ids": ["array of speaker IDs (1 or more)"],
-  "track": "string or null",
-  "required_amenities": ["array of strings"],
+  "track": "string or null (default: null)",
+  "required_amenities": ["array of strings (default: [])"],
   "expected_attendance": "integer (0-10000)",
-  "is_keynote": "boolean (default false)"
+  "is_keynote": "boolean (default: false)"
 }
 ```
 
@@ -106,8 +99,8 @@ Health check endpoint.
 {
   "id": "string",
   "name": "string",
-  "unavailable_slots": ["array of time slot strings"],
-  "preferred_slots": ["array of time slot strings"]
+  "unavailable_slots": ["array of time slot strings (default: [])"],
+  "preferred_slots": ["array of time slot strings (default: [], unused for constraint checking)"]
 }
 ```
 
@@ -115,8 +108,8 @@ Health check endpoint.
 ```json
 {
   "id": "string",
-  "must_attend": ["array of session IDs (non-negotiable)"],
-  "wants_to_attend": ["array of session IDs (preferences, ranked by position)"]
+  "must_attend": ["array of session IDs (default: [])"],
+  "wants_to_attend": ["array of session IDs (default: [], unused for constraint checking)"]
 }
 ```
 
@@ -141,22 +134,16 @@ Example time slots for a day:
 ]
 ```
 
-### Config
-```json
-{
-  "max_compute_seconds": "integer (default 30)",
-  "optimization_level": "string: 'fast' | 'balanced' | 'thorough'"
-}
-```
-
 ---
 
 ## Hard Constraints (Must Satisfy)
 
 Violation of ANY hard constraint makes the schedule invalid.
 
+**Note on time slots:** Time slots are discrete scheduling units. A session assigned to a slot **occupies the entire slot** for all conflict constraints, regardless of its `duration_minutes`. Session duration is only used to ensure the session fits (`HC6`); the scheduler does not pack multiple sessions within a single slot. Two sessions "overlap" if and only if they are assigned to the same time slot.
+
 ### HC1: No Speaker Conflicts
-A speaker cannot be scheduled in overlapping sessions.
+A speaker cannot be in two sessions scheduled for the same time slot.
 
 ### HC2: Room Capacity
 `room.capacity >= session.expected_attendance`
@@ -179,7 +166,7 @@ A room can only host one session per time slot.
 Every session must be assigned exactly one room and time slot.
 
 ### HC8: Track Non-Overlap
-Sessions in the same track cannot overlap in time.
+Sessions in the same track cannot be in the same time slot.
 (Allows attendees to attend all sessions in a track)
 
 ### HC9: Keynote Exclusivity
@@ -187,46 +174,8 @@ When a keynote is scheduled, no other sessions run in that time slot.
 (All attendees should be able to attend keynotes)
 
 ### HC10: Attendee Must-Attend
-For each attendee, their `must_attend` sessions cannot overlap in time.
-If the input has an attendee with conflicting `must_attend` sessions, return `infeasible`.
-
----
-
-## Soft Constraints (Optimization Scoring)
-
-The schedule is scored on how well it satisfies soft constraints. Higher is better.
-
-### SC1: Attendee Satisfaction (0-1000 points)
-
-For each attendee, calculate how many of their `wants_to_attend` sessions they can actually attend (no overlaps).
-
-```
-satisfaction = Σ (attendable_sessions / wanted_sessions) * weight
-```
-
-Sessions earlier in `wants_to_attend` list are worth more (position-weighted).
-
-### SC2: Speaker Convenience (0-500 points)
-
-Speakers prefer:
-- Sessions in their `preferred_slots` (+20 points each)
-- Back-to-back sessions (minimize gaps) (+30 points for each adjacent pair)
-- Not having sessions at day boundaries (first/last slot) (+10 points)
-
-### SC3: Room Utilization (0-300 points)
-
-Prefer room sizes close to expected attendance (reduce waste):
-```
-utilization_score = 1 - (room.capacity - expected_attendance) / room.capacity
-```
-
-Penalize putting 20 people in a 500-seat room.
-
-### SC4: Track Cohesion (0-200 points)
-
-Sessions in the same track should ideally:
-- Be in the same room (+25 points per track with single room)
-- Be scheduled consecutively (+15 points for each consecutive pair)
+For each attendee, their `must_attend` sessions cannot be in the same time slot.
+If the input makes this impossible, return `infeasible`.
 
 ---
 
@@ -252,7 +201,7 @@ Return `status: "infeasible"` with a `reason` when:
 - Speaker has more sessions than available time slots
 - A session requires amenities no room has
 - A session's expected attendance exceeds all room capacities
-- Attendee's `must_attend` sessions inherently conflict
+- Attendee's `must_attend` sessions cannot all be in different time slots
 - More sessions than (rooms × time_slots) [pigeonhole]
 - Track has more sessions than time slots
 
@@ -261,6 +210,29 @@ The `reason` should be specific and actionable.
 ---
 
 ## Examples
+
+### Minimal Example (Golden Test)
+
+The simplest possible valid input and its exact expected output:
+
+**Request:**
+```json
+{
+  "rooms": [{"id": "R1", "name": "Room", "capacity": 100, "amenities": []}],
+  "sessions": [{"id": "S1", "title": "Talk", "duration_minutes": 60, "speaker_ids": ["SP1"], "expected_attendance": 50}],
+  "speakers": [{"id": "SP1", "name": "Alice"}],
+  "attendees": [],
+  "time_slots": [{"start": "09:00", "duration_minutes": 60}]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "schedule": [{"session_id": "S1", "room_id": "R1", "time_slot": "09:00"}]
+}
+```
 
 ### Example 1: Simple Valid Input
 
@@ -277,18 +249,17 @@ The `reason` should be specific and actionable.
     {"id": "S3", "title": "Advanced Rust", "duration_minutes": 60, "speaker_ids": ["SP2"], "track": "languages", "required_amenities": ["projector"], "expected_attendance": 30, "is_keynote": false}
   ],
   "speakers": [
-    {"id": "SP1", "name": "Alice", "unavailable_slots": [], "preferred_slots": ["09:00"]},
-    {"id": "SP2", "name": "Bob", "unavailable_slots": ["09:00"], "preferred_slots": ["10:00", "11:00"]}
+    {"id": "SP1", "name": "Alice", "unavailable_slots": []},
+    {"id": "SP2", "name": "Bob", "unavailable_slots": ["09:00"]}
   ],
   "attendees": [
-    {"id": "A1", "must_attend": ["S1"], "wants_to_attend": ["S2", "S3"]}
+    {"id": "A1", "must_attend": ["S1"]}
   ],
   "time_slots": [
     {"start": "09:00", "duration_minutes": 60},
     {"start": "10:00", "duration_minutes": 60},
     {"start": "11:00", "duration_minutes": 60}
-  ],
-  "config": {"max_compute_seconds": 10, "optimization_level": "balanced"}
+  ]
 }
 ```
 
@@ -300,13 +271,7 @@ The `reason` should be specific and actionable.
     {"session_id": "S1", "room_id": "R1", "time_slot": "09:00"},
     {"session_id": "S2", "room_id": "R2", "time_slot": "10:00"},
     {"session_id": "S3", "room_id": "R2", "time_slot": "11:00"}
-  ],
-  "score": 425,
-  "score_breakdown": {
-    "attendee_satisfaction": 200,
-    "speaker_convenience": 150,
-    "room_utilization": 75
-  }
+  ]
 }
 ```
 
@@ -322,7 +287,7 @@ The `reason` should be specific and actionable.
     {"id": "S3", "title": "Talk 3", "duration_minutes": 60, "speaker_ids": ["SP1"], ...}
   ],
   "speakers": [
-    {"id": "SP1", "name": "Alice", "unavailable_slots": ["11:00"], "preferred_slots": []}
+    {"id": "SP1", "name": "Alice", "unavailable_slots": ["11:00"]}
   ],
   "time_slots": [
     {"start": "09:00", "duration_minutes": 60},
@@ -343,32 +308,19 @@ The `reason` should be specific and actionable.
 
 ---
 
-## Performance Requirements
-
-- **Small inputs** (≤10 sessions, ≤5 rooms): respond within 5 seconds
-- **Medium inputs** (≤50 sessions, ≤15 rooms): respond within 30 seconds
-- **Large inputs** (≤200 sessions, ≤30 rooms): respond within `config.max_compute_seconds`
-
-The API should return the best schedule found within the time limit, not necessarily the global optimum.
-
----
-
 ## Implementation Notes
 
-This is a constraint satisfaction + optimization problem (CSP/COP). Approaches include:
+This is a constraint satisfaction problem (CSP). Approaches include:
 
 - Backtracking with constraint propagation
-- Local search (simulated annealing, tabu search)
+- Local search
 - Integer linear programming
-- Genetic algorithms
-- Greedy construction + improvement
+- Greedy construction
 
-The choice of algorithm affects both solution quality and runtime. A good implementation will:
+A good implementation will:
 
 1. Detect infeasibility early (before exhaustive search)
-2. Find a valid solution quickly (satisfy hard constraints)
-3. Iteratively improve the solution (optimize soft constraints)
-4. Respect the time budget and return best-so-far
+2. Find a valid solution that satisfies all hard constraints
 
 ---
 
@@ -386,6 +338,5 @@ Tests are organized by complexity:
 
 Each test provides input and validates:
 - Hard constraint satisfaction (binary pass/fail)
-- Soft constraint scoring (compared against baseline threshold)
 - Proper infeasibility detection
 - Appropriate error messages for bad input

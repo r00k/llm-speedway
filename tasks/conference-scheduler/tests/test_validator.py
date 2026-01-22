@@ -4,7 +4,7 @@ These tests ensure our test infrastructure is correct before we use it to judge 
 """
 
 import pytest
-from conftest import ScheduleValidator, ScoreCalculator, validate_schedule
+from conftest import ScheduleValidator, validate_schedule
 
 
 # === Minimal valid input for building test cases ===
@@ -28,7 +28,7 @@ def make_input(
 
 def make_response(schedule, status="success"):
     """Helper to build a response."""
-    return {"status": status, "schedule": schedule, "score": 0, "score_breakdown": {}}
+    return {"status": status, "schedule": schedule}
 
 
 # =============================================================================

@@ -131,7 +131,7 @@ class ScheduleValidator:
         return violations
 
     def _check_no_speaker_conflicts(self) -> list[str]:
-        """HC1: A speaker cannot be scheduled in overlapping sessions."""
+        """HC1: A speaker cannot be in two sessions in the same time slot."""
         violations = []
         for speaker_id, slots in self.speaker_schedule.items():
             if len(slots) != len(set(slots)):
@@ -207,7 +207,7 @@ class ScheduleValidator:
         return violations
 
     def _check_track_non_overlap(self) -> list[str]:
-        """HC8: Sessions in the same track cannot overlap in time."""
+        """HC8: Sessions in the same track cannot be in the same time slot."""
         violations = []
         track_slots: dict[str, list[str]] = {}
 
@@ -221,7 +221,7 @@ class ScheduleValidator:
 
         for track, slots in track_slots.items():
             if len(slots) != len(set(slots)):
-                violations.append(f"HC8: Track '{track}' has overlapping sessions")
+                violations.append(f"HC8: Track '{track}' has sessions in the same time slot")
 
         return violations
 
@@ -262,7 +262,7 @@ class ScheduleValidator:
         return violations
 
     def _check_attendee_must_attend(self) -> list[str]:
-        """HC10: Attendee must_attend sessions cannot overlap."""
+        """HC10: Attendee must_attend sessions cannot be in the same time slot."""
         violations = []
 
         for aid, attendee in self.attendees.items():
@@ -272,173 +272,10 @@ class ScheduleValidator:
                     must_slots.append(self.session_assignment[sid]["time_slot"])
             if len(must_slots) != len(set(must_slots)):
                 violations.append(
-                    f"HC10: Attendee '{aid}' has overlapping must_attend sessions"
+                    f"HC10: Attendee '{aid}' has must_attend sessions in the same time slot"
                 )
 
         return violations
-
-
-class ScoreCalculator:
-    """Calculates soft constraint scores for a valid schedule."""
-
-    def __init__(self, input_data: dict, schedule: list[dict]):
-        self.input = input_data
-        self.schedule = schedule
-        self._build_lookups()
-
-    def _build_lookups(self):
-        self.rooms = {r["id"]: r for r in self.input["rooms"]}
-        self.sessions = {s["id"]: s for s in self.input["sessions"]}
-        self.speakers = {sp["id"]: sp for sp in self.input["speakers"]}
-        self.attendees = {a["id"]: a for a in self.input.get("attendees", [])}
-        self.time_slots = sorted([ts["start"] for ts in self.input["time_slots"]])
-
-        self.session_assignment = {}
-        for entry in self.schedule:
-            self.session_assignment[entry["session_id"]] = {
-                "room_id": entry["room_id"],
-                "time_slot": entry["time_slot"],
-            }
-
-    def calculate_all(self) -> dict[str, int]:
-        """Calculate all soft constraint scores."""
-        return {
-            "attendee_satisfaction": self._attendee_satisfaction(),
-            "speaker_convenience": self._speaker_convenience(),
-            "room_utilization": self._room_utilization(),
-            "track_cohesion": self._track_cohesion(),
-        }
-
-    def _attendee_satisfaction(self) -> int:
-        """SC1: How many wanted sessions can attendees actually attend."""
-        if not self.attendees:
-            return 0
-
-        total_score = 0
-        max_possible = 0
-
-        for aid, attendee in self.attendees.items():
-            wants = attendee.get("wants_to_attend", [])
-            if not wants:
-                continue
-
-            # Position-weighted scoring (earlier = more valuable)
-            slots_used = set()
-            attendee_score = 0
-            for i, sid in enumerate(wants):
-                weight = len(wants) - i  # Higher weight for earlier preferences
-                max_possible += weight
-                if sid in self.session_assignment:
-                    slot = self.session_assignment[sid]["time_slot"]
-                    if slot not in slots_used:
-                        slots_used.add(slot)
-                        attendee_score += weight
-
-            total_score += attendee_score
-
-        if max_possible == 0:
-            return 0
-
-        # Normalize to 0-1000 scale
-        return int((total_score / max_possible) * 1000)
-
-    def _speaker_convenience(self) -> int:
-        """SC2: Speaker preferences and convenience."""
-        score = 0
-
-        speaker_sessions: dict[str, list[str]] = {}
-        for sid, assignment in self.session_assignment.items():
-            session = self.sessions[sid]
-            for speaker_id in session["speaker_ids"]:
-                if speaker_id not in speaker_sessions:
-                    speaker_sessions[speaker_id] = []
-                speaker_sessions[speaker_id].append(assignment["time_slot"])
-
-        for speaker_id, slots in speaker_sessions.items():
-            speaker = self.speakers[speaker_id]
-            preferred = set(speaker.get("preferred_slots", []))
-
-            # Preferred slots (+20 each)
-            for slot in slots:
-                if slot in preferred:
-                    score += 20
-
-            # Back-to-back sessions (+30 for adjacent pairs)
-            sorted_slots = sorted(slots, key=lambda s: self.time_slots.index(s))
-            for i in range(len(sorted_slots) - 1):
-                idx1 = self.time_slots.index(sorted_slots[i])
-                idx2 = self.time_slots.index(sorted_slots[i + 1])
-                if idx2 - idx1 == 1:
-                    score += 30
-
-            # Not at day boundaries (+10 each)
-            for slot in slots:
-                idx = self.time_slots.index(slot)
-                if idx != 0 and idx != len(self.time_slots) - 1:
-                    score += 10
-
-        return min(score, 500)  # Cap at 500
-
-    def _room_utilization(self) -> int:
-        """SC3: Efficient room usage (capacity close to attendance)."""
-        if not self.session_assignment:
-            return 0
-
-        total_efficiency = 0
-        count = 0
-
-        for sid, assignment in self.session_assignment.items():
-            session = self.sessions[sid]
-            room = self.rooms[assignment["room_id"]]
-            expected = session.get("expected_attendance", 0)
-            capacity = room["capacity"]
-
-            if capacity > 0:
-                efficiency = expected / capacity
-                total_efficiency += min(efficiency, 1.0)
-                count += 1
-
-        if count == 0:
-            return 0
-
-        avg_efficiency = total_efficiency / count
-        return int(avg_efficiency * 300)
-
-    def _track_cohesion(self) -> int:
-        """SC4: Track sessions in same room and consecutive."""
-        track_info: dict[str, list[tuple[str, str]]] = {}  # track -> [(room, slot)]
-
-        for sid, assignment in self.session_assignment.items():
-            session = self.sessions[sid]
-            track = session.get("track")
-            if track:
-                if track not in track_info:
-                    track_info[track] = []
-                track_info[track].append(
-                    (assignment["room_id"], assignment["time_slot"])
-                )
-
-        score = 0
-
-        for track, assignments in track_info.items():
-            if len(assignments) <= 1:
-                continue
-
-            rooms = [a[0] for a in assignments]
-            slots = sorted([a[1] for a in assignments], key=lambda s: self.time_slots.index(s))
-
-            # Same room bonus (+25 per track)
-            if len(set(rooms)) == 1:
-                score += 25
-
-            # Consecutive slots bonus (+15 per consecutive pair)
-            for i in range(len(slots) - 1):
-                idx1 = self.time_slots.index(slots[i])
-                idx2 = self.time_slots.index(slots[i + 1])
-                if idx2 - idx1 == 1:
-                    score += 15
-
-        return min(score, 200)  # Cap at 200
 
 
 def validate_schedule(input_data: dict, response: dict) -> tuple[bool, list[str], dict]:
@@ -461,12 +298,7 @@ def validate_schedule(input_data: dict, response: dict) -> tuple[bool, list[str]
     validator = ScheduleValidator(input_data, schedule)
     is_valid, violations = validator.validate_all()
 
-    scores = {}
-    if is_valid:
-        calculator = ScoreCalculator(input_data, schedule)
-        scores = calculator.calculate_all()
-
-    return is_valid, violations, scores
+    return is_valid, violations, {}
 
 
 @pytest.fixture

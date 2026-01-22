@@ -449,7 +449,3 @@ class TestIntermediateSchedules:
 
         # Verify we have all 8 sessions scheduled
         assert len(result["schedule"]) == 8
-
-        # Check score is present
-        assert "score" in result
-        assert result["score"] > 0
