@@ -19,6 +19,7 @@ class TestTestResult:
         assert result.tests_passed == 0
         assert result.tests_failed == 0
         assert result.tests_total == 0
+        assert result.failed_tests == []
 
 
 class TestTestRunner:
@@ -56,3 +57,26 @@ class TestTestRunner:
         assert passed == 0
         assert failed == 0
         assert total == 0
+
+    def test_parse_failed_tests_single(self):
+        runner = TestRunner("task", "http://localhost:8080")
+        output = "tests/test_foo.py::test_bar FAILED"
+        failed = runner._parse_failed_tests(output)
+        assert failed == ["tests/test_foo.py::test_bar"]
+
+    def test_parse_failed_tests_multiple(self):
+        runner = TestRunner("task", "http://localhost:8080")
+        output = """
+tests/test_foo.py::test_one PASSED
+tests/test_foo.py::test_two FAILED
+tests/test_bar.py::test_three FAILED
+tests/test_bar.py::test_four PASSED
+"""
+        failed = runner._parse_failed_tests(output)
+        assert failed == ["tests/test_foo.py::test_two", "tests/test_bar.py::test_three"]
+
+    def test_parse_failed_tests_none(self):
+        runner = TestRunner("task", "http://localhost:8080")
+        output = "5 passed in 1.23s"
+        failed = runner._parse_failed_tests(output)
+        assert failed == []

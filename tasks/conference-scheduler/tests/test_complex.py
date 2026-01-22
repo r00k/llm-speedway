@@ -21,9 +21,11 @@ class TestComplexSchedules:
         time_slots = [
             {"start": "09:00", "duration_minutes": 60},
             {"start": "10:30", "duration_minutes": 60},
-            {"start": "13:00", "duration_minutes": 60},
-            {"start": "14:30", "duration_minutes": 60},
-            {"start": "16:00", "duration_minutes": 60},
+            {"start": "12:00", "duration_minutes": 60},
+            {"start": "13:30", "duration_minutes": 60},
+            {"start": "15:00", "duration_minutes": 60},
+            {"start": "16:30", "duration_minutes": 60},
+            {"start": "18:00", "duration_minutes": 60},
         ]
 
         # Create 25 sessions across 5 tracks
@@ -54,7 +56,7 @@ class TestComplexSchedules:
             if i % 4 == 0:
                 unavailable = ["09:00"]
             elif i % 4 == 1:
-                unavailable = ["16:00"]
+                unavailable = ["18:00"]
 
             speakers.append({
                 "id": f"SP{i}",

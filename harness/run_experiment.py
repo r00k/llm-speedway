@@ -93,7 +93,7 @@ def run_single_experiment(
             return result
         
         # Run tests
-        print("Running tests...")
+        print("Confirming model performance by re-running our pristine test suite...")
         test_runner = TestRunner(task, service.base_url)
         test_result = test_runner.run(run_dir=run_dir)
         
@@ -111,6 +111,10 @@ def run_single_experiment(
     
     print(f"\n{'='*60}")
     print(f"{status.upper()} — {timer.elapsed()}s")
+    if test_result.failed_tests:
+        print(f"\nFailed tests:")
+        for test_name in test_result.failed_tests:
+            print(f"  • {test_name}")
     print(f"{'='*60}\n")
     
     return result

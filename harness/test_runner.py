@@ -19,6 +19,11 @@ class TestResult:
     tests_passed: int = 0
     tests_failed: int = 0
     tests_total: int = 0
+    failed_tests: list[str] = None
+    
+    def __post_init__(self):
+        if self.failed_tests is None:
+            self.failed_tests = []
 
 
 class TestRunner:
@@ -72,8 +77,9 @@ class TestRunner:
             stderr = e.stderr.decode() if e.stderr else "Tests timed out"
             exit_code = -1
         
-        # Parse test counts from pytest output
+        # Parse test counts and failed test names from pytest output
         tests_passed, tests_failed, tests_total = self._parse_pytest_output(stdout)
+        failed_tests = self._parse_failed_tests(stdout)
         
         # Save logs
         if run_dir:
@@ -88,6 +94,7 @@ class TestRunner:
             tests_passed=tests_passed,
             tests_failed=tests_failed,
             tests_total=tests_total,
+            failed_tests=failed_tests,
         )
     
     def _parse_pytest_output(self, output: str) -> tuple[int, int, int]:
@@ -108,3 +115,14 @@ class TestRunner:
             failed = int(failed_match.group(1))
         
         return passed, failed, passed + failed
+    
+    def _parse_failed_tests(self, output: str) -> list[str]:
+        """Parse pytest output to extract failed test names."""
+        import re
+        
+        failed_tests = []
+        # Match lines like "tests/test_foo.py::test_bar FAILED"
+        for match in re.finditer(r"(\S+::\S+)\s+FAILED", output):
+            failed_tests.append(match.group(1))
+        
+        return failed_tests

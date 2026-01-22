@@ -437,6 +437,7 @@ class TestIntermediateSchedules:
                 {"start": "10:00", "duration_minutes": 60},
                 {"start": "11:00", "duration_minutes": 60},
                 {"start": "14:00", "duration_minutes": 60},
+                {"start": "15:00", "duration_minutes": 60},
             ],
         }
         response = client.post("/schedule", json=data, timeout=30)
