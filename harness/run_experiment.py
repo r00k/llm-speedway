@@ -9,7 +9,7 @@ from .config import TaskConfig, get_prompt_variant, get_task_wrapper, get_spec
 from .workspace import create_run_id, create_workspace, get_run_dir
 from .timers import ExperimentTimer
 from .service import ServiceManager, get_free_port
-from .test_runner import TestRunner
+from .test_runner import SuiteRunner
 from .results import ExperimentResult, save_run_result
 from .agents import get_agent
 
@@ -94,7 +94,7 @@ def run_single_experiment(
         
         # Run tests
         print("Confirming model performance by re-running our pristine test suite...")
-        test_runner = TestRunner(task, service.base_url)
+        test_runner = SuiteRunner(task, service.base_url)
         test_result = test_runner.run(run_dir=run_dir)
         
         # Check if service crashed during tests

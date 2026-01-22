@@ -10,7 +10,7 @@ from .config import TASKS_DIR
 
 
 @dataclass
-class TestResult:
+class SuiteResult:
     """Result of running tests."""
     passed: bool
     exit_code: int
@@ -27,7 +27,7 @@ class TestResult:
             self.failed_tests = []
 
 
-class TestRunner:
+class SuiteRunner:
     """Runs the test suite against a service."""
     
     def __init__(self, task: str, base_url: str):
@@ -35,11 +35,11 @@ class TestRunner:
         self.base_url = base_url
         self.tests_dir = TASKS_DIR / task / "tests"
     
-    def run(self, run_dir: Optional[Path] = None, timeout_sec: int = 300) -> TestResult:
+    def run(self, run_dir: Optional[Path] = None, timeout_sec: int = 300) -> SuiteResult:
         """Run the test suite."""
         
         if not self.tests_dir.exists():
-            return TestResult(
+            return SuiteResult(
                 passed=False,
                 exit_code=1,
                 stdout="",
@@ -88,7 +88,7 @@ class TestRunner:
             (run_dir / "test.stdout.log").write_text(stdout)
             (run_dir / "test.stderr.log").write_text(stderr)
         
-        return TestResult(
+        return SuiteResult(
             passed=exit_code == 0,
             exit_code=exit_code,
             stdout=stdout,
