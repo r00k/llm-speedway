@@ -96,10 +96,10 @@ uv run python -m harness.run_experiment \
   --task conference-scheduler \
   --agent amp \
   --model smart \
-  --self-testing
+  --write-own-tests
 
 # Or with run_all
-uv run python -m harness.run_all --task smoke --self-testing --parallel
+uv run python -m harness.run_all --task smoke --write-own-tests --parallel
 ```
 
 In this mode:

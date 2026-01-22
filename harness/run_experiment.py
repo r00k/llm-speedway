@@ -188,7 +188,7 @@ def main():
     parser.add_argument("--language", help="Force a specific language (e.g., Python, Rust, Go)")
     parser.add_argument("--constraint", action="append", dest="constraints", 
                         help="Add a constraint (can be repeated)")
-    parser.add_argument("--self-testing", action="store_true",
+    parser.add_argument("--write-own-tests", action="store_true",
                         help="Model writes own tests (no test suite provided)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     
@@ -200,7 +200,7 @@ def main():
         model=args.model,
         language=args.language,
         constraints=args.constraints,
-        self_testing=args.self_testing,
+        self_testing=args.write_own_tests,
         verbose=args.verbose,
     )
     

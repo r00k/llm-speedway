@@ -43,7 +43,7 @@ def main():
                         help="Run agents in parallel")
     parser.add_argument("--agents", nargs="+", 
                         help="Specific agents to run (default: all)")
-    parser.add_argument("--self-testing", action="store_true",
+    parser.add_argument("--write-own-tests", action="store_true",
                         help="Model writes own tests (no test suite provided)")
     
     args = parser.parse_args()
@@ -59,14 +59,14 @@ def main():
         print(f"Language: {args.language}")
     if args.constraints:
         print(f"Constraints: {', '.join(args.constraints)}")
-    if args.self_testing:
-        print("Mode: self-testing (model writes own tests)")
+    if args.write_own_tests:
+        print("Mode: write-own-tests (model writes own tests)")
     print(f"{'='*60}\n")
     
     if args.parallel:
         with ThreadPoolExecutor(max_workers=len(agents_to_run)) as executor:
             futures = {
-                executor.submit(run_experiment, args.task, agent, model, args.language, args.constraints, args.self_testing): agent
+                executor.submit(run_experiment, args.task, agent, model, args.language, args.constraints, args.write_own_tests): agent
                 for agent, model in agents_to_run
             }
             for future in as_completed(futures):
@@ -75,7 +75,7 @@ def main():
                 print(f"{status} {agent} completed")
     else:
         for agent, model in agents_to_run:
-            run_experiment(args.task, agent, model, args.language, args.constraints, args.self_testing)
+            run_experiment(args.task, agent, model, args.language, args.constraints, args.write_own_tests)
 
 
 if __name__ == "__main__":
