@@ -16,7 +16,6 @@ class TestExperimentResult:
             task="test-task",
             agent="test-agent",
             model="test-model",
-            prompt_variant="default",
             status="pass",
             duration_sec=123.45,
         )
@@ -25,10 +24,26 @@ class TestExperimentResult:
         assert d["task"] == "test-task"
         assert d["agent"] == "test-agent"
         assert d["model"] == "test-model"
-        assert d["prompt_variant"] == "default"
+        assert d["language"] is None
+        assert d["constraints"] is None
         assert d["status"] == "pass"
         assert d["duration_sec"] == 123.45
         assert d["error_message"] is None
+
+    def test_to_dict_with_constraints(self):
+        result = ExperimentResult(
+            run_id="test-run",
+            task="test-task",
+            agent="test-agent",
+            model="test-model",
+            status="pass",
+            duration_sec=100.0,
+            language="Go",
+            constraints=["use only 5 files"],
+        )
+        d = result.to_dict()
+        assert d["language"] == "Go"
+        assert d["constraints"] == ["use only 5 files"]
 
     def test_to_dict_with_error(self):
         result = ExperimentResult(
@@ -36,7 +51,6 @@ class TestExperimentResult:
             task="test-task",
             agent="test-agent",
             model="test-model",
-            prompt_variant="default",
             status="error",
             duration_sec=10.0,
             error_message="Something went wrong",
@@ -56,7 +70,6 @@ class TestResultsWriter:
                 task="task-1",
                 agent="agent-1",
                 model="model-1",
-                prompt_variant="default",
                 status="pass",
                 duration_sec=100.0,
             )
@@ -65,7 +78,6 @@ class TestResultsWriter:
                 task="task-2",
                 agent="agent-2",
                 model="model-2",
-                prompt_variant="default",
                 status="fail",
                 duration_sec=200.0,
             )

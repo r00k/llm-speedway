@@ -16,9 +16,10 @@ class ExperimentResult:
     task: str
     agent: str
     model: str
-    prompt_variant: str
     status: Literal["pass", "fail", "timeout", "error"]
     duration_sec: float
+    language: Optional[str] = None
+    constraints: Optional[list[str]] = None
     error_message: Optional[str] = None
     
     def to_dict(self) -> dict:
@@ -27,7 +28,8 @@ class ExperimentResult:
             "task": self.task,
             "agent": self.agent,
             "model": self.model,
-            "prompt_variant": self.prompt_variant,
+            "language": self.language,
+            "constraints": self.constraints,
             "status": self.status,
             "duration_sec": self.duration_sec,
             "error_message": self.error_message,

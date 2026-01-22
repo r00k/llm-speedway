@@ -11,6 +11,8 @@ import pytest
 
 
 def get_base_url() -> str:
+    if url := os.environ.get("SERVICE_URL") or os.environ.get("BASE_URL"):
+        return url
     port = os.environ.get("PORT", "8080")
     return f"http://localhost:{port}"
 

@@ -50,15 +50,35 @@ uv run python -m harness.run_experiment \
 | `issue-tracker` | CRUD REST API with labels, comments, projects |
 | `smoke` | Minimal health-check endpoint (for testing harness) |
 
-## Prompt Variants
+## Language Constraint
 
-Run experiments with different constraints:
+Force a specific programming language:
 
 ```bash
---prompt-variant default         # No constraints
---prompt-variant short-functions # Max 10 lines per function
---prompt-variant force-go        # Must use Go
---prompt-variant force-haskell   # Must use Haskell
+--language Go
+--language Rust
+--language Python
+```
+
+## Custom Constraints
+
+Add arbitrary constraints (can be repeated):
+
+```bash
+--constraint "use only 5 files"
+--constraint "all functions must be shorter than 10 lines"
+--constraint "do not use any external dependencies"
+```
+
+Example with both:
+
+```bash
+uv run python -m harness.run_experiment \
+  --task conference-scheduler \
+  --agent amp \
+  --model smart \
+  --language Go \
+  --constraint "use only 5 files"
 ```
 
 ## Results
@@ -72,7 +92,7 @@ Run experiments with different constraints:
 
 ```
 harness/                    # Runner + agent adapters
-prompts/                    # System prompt variants  
+prompts/                    # System prompts  
 tasks/                      # Benchmark specs + tests
   conference-scheduler/     # Constraint satisfaction problem
   issue-tracker/            # CRUD REST API

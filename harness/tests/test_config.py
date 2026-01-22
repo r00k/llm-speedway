@@ -9,7 +9,7 @@ from harness.config import (
     TaskConfig,
     TASKS_DIR,
     PROMPTS_DIR,
-    get_prompt_variant,
+    get_system_prompt,
     get_task_wrapper,
     get_spec,
 )
@@ -44,10 +44,26 @@ class TestTaskConfig:
         assert config.port == 8080
 
 
-class TestGetPromptVariant:
-    def test_missing_variant_raises_error(self):
-        with pytest.raises(ValueError, match="Prompt variant not found"):
-            get_prompt_variant("nonexistent-variant-12345")
+class TestGetSystemPrompt:
+    def test_no_constraints_returns_base(self):
+        prompt = get_system_prompt()
+        assert "expert software engineer" in prompt
+    
+    def test_language_constraint(self):
+        prompt = get_system_prompt(language="Go")
+        assert "CRITICAL: Use Go" in prompt
+        assert "idiomatic Go" in prompt
+    
+    def test_custom_constraints(self):
+        prompt = get_system_prompt(constraints=["use only 5 files", "no external deps"])
+        assert "CRITICAL: Constraints" in prompt
+        assert "use only 5 files" in prompt
+        assert "no external deps" in prompt
+    
+    def test_both_language_and_constraints(self):
+        prompt = get_system_prompt(language="Rust", constraints=["keep it simple"])
+        assert "CRITICAL: Use Rust" in prompt
+        assert "keep it simple" in prompt
 
 
 class TestGetSpec:

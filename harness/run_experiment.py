@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .config import TaskConfig, get_prompt_variant, get_task_wrapper, get_spec
+from .config import TaskConfig, get_system_prompt, get_task_wrapper, get_spec
 from .workspace import create_run_id, create_workspace, get_run_dir
 from .timers import ExperimentTimer
 from .service import ServiceManager, get_free_port
@@ -18,7 +18,8 @@ def run_single_experiment(
     task: str,
     agent_name: str,
     model: str,
-    prompt_variant: str,
+    language: str | None = None,
+    constraints: list[str] | None = None,
     verbose: bool = False,
 ) -> ExperimentResult:
     """Run a single experiment and return the result."""
@@ -26,17 +27,27 @@ def run_single_experiment(
     # Load configuration
     task_config = TaskConfig.load(task)
     spec = get_spec(task)
-    system_prompt = get_prompt_variant(prompt_variant)
+    system_prompt = get_system_prompt(language=language, constraints=constraints)
     contract = get_task_wrapper()
     
+    # Build variant label for run ID
+    parts = []
+    if language:
+        parts.append(language.lower())
+    if constraints:
+        parts.extend(c.replace(" ", "-")[:15] for c in constraints)
+    variant_label = "_".join(parts)[:50] or "default"
+    
     # Create workspace
-    run_id = create_run_id(task, agent_name, model, prompt_variant)
+    run_id = create_run_id(task, agent_name, model, variant_label)
     workspace_dir = create_workspace(task, run_id)
     run_dir = get_run_dir(run_id)
     
     print(f"\n{'='*60}")
     print(f"Run: {run_id}")
-    print(f"Agent: {agent_name} | Model: {model} | Prompt: {prompt_variant}")
+    lang_display = language or "any"
+    constraint_display = ", ".join(constraints) if constraints else "none"
+    print(f"Agent: {agent_name} | Model: {model} | Language: {lang_display} | Constraints: {constraint_display}")
     print(f"{'='*60}\n")
     
     # Start timer
@@ -61,8 +72,8 @@ def run_single_experiment(
         timer.stop()
         result = ExperimentResult(
             run_id=run_id, task=task, agent=agent_name, model=model,
-            prompt_variant=prompt_variant, status="timeout",
-            duration_sec=timer.elapsed(), error_message="Agent timed out",
+            status="timeout", duration_sec=timer.elapsed(),
+            language=language, constraints=constraints, error_message="Agent timed out",
         )
         save_run_result(run_id, result)
         print(f"TIMEOUT after {timer.elapsed()}s")
@@ -85,8 +96,8 @@ def run_single_experiment(
             timer.stop()
             result = ExperimentResult(
                 run_id=run_id, task=task, agent=agent_name, model=model,
-                prompt_variant=prompt_variant, status="error",
-                duration_sec=timer.elapsed(), error_message="Service failed to start",
+                status="error", duration_sec=timer.elapsed(),
+                language=language, constraints=constraints, error_message="Service failed to start",
             )
             save_run_result(run_id, result)
             print(f"ERROR: Service failed to start ({timer.elapsed()}s)")
@@ -121,8 +132,8 @@ def run_single_experiment(
     
     result = ExperimentResult(
         run_id=run_id, task=task, agent=agent_name, model=model,
-        prompt_variant=prompt_variant, status=status, duration_sec=timer.elapsed(),
-        error_message=error_message,
+        status=status, duration_sec=timer.elapsed(),
+        language=language, constraints=constraints, error_message=error_message,
     )
     save_run_result(run_id, result)
     
@@ -144,7 +155,9 @@ def main():
     parser.add_argument("--task", required=True, help="Task name (e.g., issue-tracker)")
     parser.add_argument("--agent", required=True, help="Agent to test (codex, claude-code)")
     parser.add_argument("--model", required=True, help="Model to use")
-    parser.add_argument("--prompt-variant", default="default", help="Prompt variant")
+    parser.add_argument("--language", help="Force a specific language (e.g., Python, Rust, Go)")
+    parser.add_argument("--constraint", action="append", dest="constraints", 
+                        help="Add a constraint (can be repeated)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     
     args = parser.parse_args()
@@ -153,7 +166,8 @@ def main():
         task=args.task,
         agent_name=args.agent,
         model=args.model,
-        prompt_variant=args.prompt_variant,
+        language=args.language,
+        constraints=args.constraints,
         verbose=args.verbose,
     )
 

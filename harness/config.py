@@ -46,12 +46,42 @@ class AgentConfig:
     timeout_minutes: int = 60
     
 
-def get_prompt_variant(variant: str) -> str:
-    """Load a system prompt variant."""
-    prompt_file = PROMPTS_DIR / "system" / f"{variant}.md"
-    if not prompt_file.exists():
-        raise ValueError(f"Prompt variant not found: {variant}")
-    return prompt_file.read_text()
+def get_system_prompt(language: str | None = None, constraints: list[str] | None = None) -> str:
+    """Build system prompt with optional language and constraints.
+    
+    Args:
+        language: Force a specific language (e.g., "Go", "Python")
+        constraints: Natural language constraints like "use only 5 files"
+    """
+    base_prompt = (PROMPTS_DIR / "system" / "default.md").read_text()
+    
+    blocks = []
+    
+    if language:
+        blocks.append(f"""## CRITICAL: Use {language}
+
+You MUST implement this service in {language}.
+- Use idiomatic {language} patterns and best practices
+- Use appropriate libraries for HTTP server and database""")
+    
+    if constraints:
+        constraint_text = "## CRITICAL: Constraints\n\nYou MUST follow these constraints:\n"
+        for c in constraints:
+            constraint_text += f"- {c}\n"
+        blocks.append(constraint_text)
+    
+    if not blocks:
+        return base_prompt
+    
+    # Insert after first heading
+    lines = base_prompt.split('\n')
+    insert_idx = 1
+    for i, line in enumerate(lines):
+        if line.startswith('# '):
+            insert_idx = i + 1
+            break
+    lines.insert(insert_idx, '\n' + '\n'.join(blocks))
+    return '\n'.join(lines)
 
 
 def get_task_wrapper() -> str:
