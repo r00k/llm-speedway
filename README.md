@@ -24,6 +24,12 @@ uv run python -m harness.run_experiment \
   --task issue-tracker \
   --agent codex \
   --model codex-5.2
+
+# Run all 3 agents on the same task
+uv run python -m harness.run_all --task conference-scheduler
+
+# Run all agents in parallel with language constraint
+uv run python -m harness.run_all --task conference-scheduler --language Go --parallel
 ```
 
 ## How It Works
