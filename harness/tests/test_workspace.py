@@ -20,16 +20,16 @@ class TestCreateRunId:
     def test_format(self):
         run_id = create_run_id("task", "agent", "model", "variant")
         parts = run_id.split("_")
-        assert len(parts) == 6
-        assert parts[2] == "task"
-        assert parts[3] == "agent"
-        assert parts[4] == "model"
-        assert parts[5] == "variant"
+        assert len(parts) == 8  # timestamp(3) + task + agent + model + variant + unique
+        assert parts[3] == "task"
+        assert parts[4] == "agent"
+        assert parts[5] == "model"
+        assert parts[6] == "variant"
 
     def test_timestamp_prefix(self):
         run_id = create_run_id("task", "agent", "model", "variant")
-        timestamp = run_id.split("_")[0] + "_" + run_id.split("_")[1]
-        assert len(timestamp) == 15  # YYYYMMDD_HHMMSS
+        timestamp = "_".join(run_id.split("_")[:3])
+        assert len(timestamp) == 22  # YYYYMMDD_HHMMSS_ffffff
 
 
 class TestCreateWorkspace:
