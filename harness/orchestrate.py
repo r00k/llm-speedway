@@ -101,7 +101,7 @@ def start_experiment(
     
     # Start tmux session with proper error capture
     tmux_cmd = f'''
-set -euo pipefail
+set -uo pipefail
 exec >"{log_file}" 2>&1
 echo "=== START $(date) ==="
 
@@ -120,7 +120,9 @@ trap 'rc=$?; echo "=== EXIT rc=$rc at $(date) ==="; echo $rc > "{log_dir}/exit_c
 
 echo "=== RUNNING: {cmd} ==="
 {cmd}
-echo "=== CMD FINISHED rc=$? ==="
+rc=$?
+echo "=== CMD FINISHED rc=$rc ==="
+exit $rc
 '''
     
     # Small stagger to avoid burst resource contention

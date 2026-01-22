@@ -11,8 +11,10 @@ from .config import TASKS_DIR, RUNS_DIR
 
 def create_run_id(task: str, agent: str, model: str, variant: str) -> str:
     """Generate a unique run ID."""
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    return f"{timestamp}_{task}_{agent}_{model}_{variant}"
+    import uuid
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+    unique = uuid.uuid4().hex[:8]
+    return f"{timestamp}_{task}_{agent}_{model}_{variant}_{unique}"
 
 
 def create_workspace(task: str, run_id: str) -> Path:

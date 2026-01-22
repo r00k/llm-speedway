@@ -1,6 +1,7 @@
 """Main experiment runner."""
 
 import argparse
+import signal
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -53,6 +54,31 @@ def run_single_experiment(
     # Start timer
     timer = ExperimentTimer()
     timer.start()
+
+    terminated = {"handled": False}
+
+    def _handle_signal(signum: int, _frame) -> None:
+        if terminated["handled"]:
+            return
+        terminated["handled"] = True
+        timer.stop()
+        try:
+            signal_name = signal.Signals(signum).name
+        except ValueError:
+            signal_name = str(signum)
+        message = f"terminated by signal {signal_name} ({signum})"
+        signal_file = run_dir / "signal.txt"
+        signal_file.write_text(f"{datetime.utcnow().isoformat()}Z {message}\n")
+        result = ExperimentResult(
+            run_id=run_id, task=task, agent=agent_name, model=model,
+            status="error", duration_sec=timer.elapsed(),
+            language=language, constraints=constraints, error_message=message,
+        )
+        save_run_result(run_id, result)
+        sys.exit(128 + signum)
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, _handle_signal)
     
     # Get agent and build prompt
     agent = get_agent(agent_name)
