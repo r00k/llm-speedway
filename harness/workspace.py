@@ -17,8 +17,14 @@ def create_run_id(task: str, agent: str, model: str, variant: str) -> str:
     return f"{timestamp}_{task}_{agent}_{model}_{variant}_{unique}"
 
 
-def create_workspace(task: str, run_id: str) -> Path:
-    """Create an isolated workspace for an experiment run."""
+def create_workspace(task: str, run_id: str, mode: str = "standard") -> Path:
+    """Create an isolated workspace for an experiment run.
+    
+    Args:
+        task: Task name
+        run_id: Unique run identifier
+        mode: "standard" (copy tests) or "self-testing" (model writes own tests)
+    """
     run_dir = RUNS_DIR / run_id
     workspace_dir = run_dir / "workspace"
     
@@ -32,13 +38,14 @@ def create_workspace(task: str, run_id: str) -> Path:
     else:
         workspace_dir.mkdir(parents=True, exist_ok=True)
     
-    # Copy tests into workspace for agent access
-    tests_dir = TASKS_DIR / task / "tests"
-    if tests_dir.exists():
-        shutil.copytree(tests_dir, workspace_dir / "_tests")
-    
-    # Generate run_tests.sh wrapper script
-    _generate_test_wrapper(workspace_dir)
+    # Copy tests into workspace for agent access (standard mode only)
+    if mode != "self-testing":
+        tests_dir = TASKS_DIR / task / "tests"
+        if tests_dir.exists():
+            shutil.copytree(tests_dir, workspace_dir / "_tests")
+        
+        # Generate run_tests.sh wrapper script
+        _generate_test_wrapper(workspace_dir)
     
     return workspace_dir
 

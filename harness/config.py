@@ -23,6 +23,9 @@ class TaskConfig:
     healthz_path: str = "/healthz"
     healthz_timeout_sec: int = 120
     spec_file: str = "SPEC.md"
+    mode: str = "standard"  # "standard" or "self-testing"
+    template_vars: dict = field(default_factory=dict)
+    starter_files: list = field(default_factory=list)
     
     @classmethod
     def load(cls, task_name: str) -> "TaskConfig":
@@ -84,14 +87,31 @@ You MUST implement this service in {language}.
     return '\n'.join(lines)
 
 
-def get_task_wrapper() -> str:
-    """Load the HTTP service contract wrapper."""
-    wrapper_file = PROMPTS_DIR / "task_wrappers" / "http-service-contract.md"
+def get_task_wrapper(mode: str = "standard") -> str:
+    """Load the HTTP service contract wrapper.
+    
+    Args:
+        mode: "standard" (tests provided) or "self-testing" (model writes tests)
+    """
+    if mode == "self-testing":
+        wrapper_file = PROMPTS_DIR / "task_wrappers" / "http-service-self-testing.md"
+    else:
+        wrapper_file = PROMPTS_DIR / "task_wrappers" / "http-service-contract.md"
     return wrapper_file.read_text()
 
 
-def get_spec(task_name: str) -> str:
-    """Load the spec for a task."""
+def get_spec(task_name: str, language: str | None = None) -> str:
+    """Load the spec for a task, substituting template variables.
+    
+    Supports {{LANGUAGE}} placeholder which is replaced with the --language arg.
+    """
     task_config = TaskConfig.load(task_name)
     spec_file = TASKS_DIR / task_name / task_config.spec_file
-    return spec_file.read_text()
+    content = spec_file.read_text()
+    
+    if language:
+        content = content.replace("{{LANGUAGE}}", language)
+    else:
+        content = content.replace("{{LANGUAGE}}", "a language of your choice")
+    
+    return content

@@ -27,12 +27,14 @@ def run_single_experiment(
     
     # Load configuration
     task_config = TaskConfig.load(task)
-    spec = get_spec(task)
+    spec = get_spec(task, language=language)
     system_prompt = get_system_prompt(language=language, constraints=constraints)
-    contract = get_task_wrapper()
+    contract = get_task_wrapper(mode=task_config.mode)
     
     # Build variant label for run ID
     parts = []
+    if task_config.mode == "self-testing":
+        parts.append("selftest")
     if language:
         parts.append(language.lower())
     if constraints:
@@ -41,7 +43,7 @@ def run_single_experiment(
     
     # Create workspace
     run_id = create_run_id(task, agent_name, model, variant_label)
-    workspace_dir = create_workspace(task, run_id)
+    workspace_dir = create_workspace(task, run_id, mode=task_config.mode)
     run_dir = get_run_dir(run_id)
     
     print(f"\n{'='*60}")

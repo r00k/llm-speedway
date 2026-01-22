@@ -87,6 +87,23 @@ uv run python -m harness.run_experiment \
   --constraint "use only 5 files"
 ```
 
+## Self-Testing Mode
+
+Tasks can require models to write their own tests instead of providing a test suite.
+
+Set `mode: self-testing` in a task's `harness.yaml`:
+
+```yaml
+port: 8080
+timeout_minutes: 90
+mode: self-testing
+```
+
+In this mode:
+- Models receive only the spec (no `_tests/` folder)
+- Models must write their own test suite in `tests/`
+- Harness validates with hidden tests at the end
+
 ## Results
 
 ```json
