@@ -26,6 +26,7 @@ class TestComplexSchedules:
             {"start": "15:00", "duration_minutes": 60},
             {"start": "16:30", "duration_minutes": 60},
             {"start": "18:00", "duration_minutes": 60},
+            {"start": "19:30", "duration_minutes": 60},
         ]
 
         # Create 25 sessions across 5 tracks

@@ -17,13 +17,13 @@ uv run python -m harness.run_experiment \
 uv run python -m harness.run_experiment \
   --task conference-scheduler \
   --agent claude-code \
-  --model claude-sonnet-4
+  --model claude-opus-4-5
 
 # Test Codex CLI
 uv run python -m harness.run_experiment \
   --task issue-tracker \
   --agent codex \
-  --model o3
+  --model codex-5.2
 ```
 
 ## How It Works
@@ -39,8 +39,8 @@ uv run python -m harness.run_experiment \
 | Agent | CLI | Model Examples |
 |-------|-----|----------------|
 | `amp` | `amp -x` | `smart`, `free`, `rush` |
-| `claude-code` | `claude` | `claude-sonnet-4`, `claude-opus-4` |
-| `codex` | `codex` | `o3`, `o4-mini` |
+| `claude-code` | `claude` | `claude-opus-4-5`, `claude-sonnet-4-5` |
+| `codex` | `codex` | `codex-5.2`, `codex-5.2-mini` |
 
 ## Tasks
 
@@ -65,7 +65,7 @@ Run experiments with different constraints:
 
 ```json
 {"agent": "amp", "model": "smart", "task": "conference-scheduler", "status": "pass", "duration_sec": 287.3}
-{"agent": "claude-code", "model": "claude-sonnet-4", "task": "issue-tracker", "status": "pass", "duration_sec": 342.5}
+{"agent": "claude-code", "model": "claude-opus-4-5", "task": "issue-tracker", "status": "pass", "duration_sec": 342.5}
 ```
 
 ## Structure
