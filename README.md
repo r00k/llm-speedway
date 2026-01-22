@@ -1,8 +1,14 @@
 # LLM Speedway
 
+![LLM Speedway](benchmark-hero.png)
+
 Benchmark harness for timing agentic coding tools. Measures end-to-end time for AI agents to implement a service from spec and pass tests.
 
-## Usage
+## Contributing
+
+**This repo does not accept PRs or issues.** It's a personal benchmarking tool. If you want different tasks, agents, or behavior—fork it and have your agent make the changes for you.
+
+## Quick Start
 
 ```bash
 uv sync
@@ -52,6 +58,7 @@ uv run python -m harness.orchestrate stop
 | `conference-scheduler` | Constraint satisfaction REST API (~10 hard constraints) |
 | `issue-tracker` | CRUD REST API with labels, comments, projects |
 | `language-rewrite` | Rewrite a Python rate limiter service into another language |
+| `rich-export-refactor` | Refactor Rich library export to use lazy loading |
 | `smoke` | Minimal health-check endpoint (for testing harness) |
 
 See [tasks/README.md](tasks/README.md) for how to create new tasks.
@@ -122,7 +129,13 @@ prompts/                    # System prompts
 tasks/                      # Benchmark specs + tests
   conference-scheduler/     # Constraint satisfaction problem
   issue-tracker/            # CRUD REST API
+  language-rewrite/         # Port Python to another language
+  rich-export-refactor/     # Lazy loading refactor
   smoke/                    # Minimal test task
 runs/                       # Execution logs
 results/                    # Results JSONL
 ```
+
+## License
+
+MIT
