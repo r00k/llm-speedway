@@ -4,9 +4,19 @@ import subprocess
 import time
 import signal
 import os
+import socket
 from pathlib import Path
 from typing import Optional
 import httpx
+
+
+def get_free_port() -> int:
+    """Find and return a free port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        s.listen(1)
+        port = s.getsockname()[1]
+    return port
 
 
 class ServiceManager:

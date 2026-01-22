@@ -8,7 +8,7 @@ from pathlib import Path
 from .config import TaskConfig, get_prompt_variant, get_task_wrapper, get_spec
 from .workspace import create_run_id, create_workspace, get_run_dir
 from .timers import ExperimentTimer
-from .service import ServiceManager
+from .service import ServiceManager, get_free_port
 from .test_runner import TestRunner
 from .results import ExperimentResult, save_run_result
 from .agents import get_agent
@@ -68,11 +68,12 @@ def run_single_experiment(
         print(f"TIMEOUT after {timer.elapsed()}s")
         return result
     
-    # Start service
-    print("Starting service...")
+    # Start service on a free port
+    port = get_free_port()
+    print(f"Starting service on port {port}...")
     service = ServiceManager(
         workspace_dir=workspace_dir,
-        port=task_config.port,
+        port=port,
         healthz_path=task_config.healthz_path,
         healthz_timeout_sec=task_config.healthz_timeout_sec,
     )
