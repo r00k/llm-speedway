@@ -62,6 +62,18 @@ class ServiceManager:
         data_dir.mkdir(exist_ok=True)
         env["DATA_DIR"] = str(data_dir)
         
+        # Ensure toolchains are in PATH (pip wrapper, java, ruby, etc.)
+        extra_paths = [
+            os.path.expanduser("~/.local/bin"),
+            "/opt/homebrew/opt/openjdk/bin",
+            "/opt/homebrew/opt/ruby/bin",
+            "/opt/homebrew/bin",
+        ]
+        env["PATH"] = ":".join(extra_paths) + ":" + env.get("PATH", "")
+        
+        # Set JAVA_HOME for Clojure/leiningen (macOS system java shim needs this)
+        env["JAVA_HOME"] = "/opt/homebrew/opt/openjdk"
+        
         # Disable Flask/Werkzeug reloader and debug mode to prevent
         # restarts when test framework creates cache files
         env["FLASK_DEBUG"] = "0"

@@ -10,7 +10,7 @@ from itertools import product
 
 from .config import RUNS_DIR, RESULTS_DIR
 
-MAX_CONCURRENT = 18  # Max parallel tmux sessions
+MAX_CONCURRENT = 6  # Max parallel tmux sessions (reduced to avoid API rate limiting)
 
 
 def generate_experiment_id(task: str, agent: str, model: str, language: str | None, constraints: list[str] | None) -> str:
@@ -99,12 +99,41 @@ def start_experiment(
     }
     meta_file.write_text(json.dumps(meta, indent=2))
     
-    # Start tmux session
-    tmux_cmd = f'cd /Users/ben/code/llm-speedway && {cmd} > "{log_file}" 2>&1; echo $? > "{log_dir}/exit_code.txt"; date > "{log_dir}/done.txt"'
+    # Start tmux session with proper error capture
+    tmux_cmd = f'''
+set -euo pipefail
+exec >"{log_file}" 2>&1
+echo "=== START $(date) ==="
+
+# Ensure toolchains are in PATH and unbuffered Python output
+export PATH="$HOME/.local/bin:/opt/homebrew/opt/openjdk/bin:/opt/homebrew/opt/ruby/bin:/opt/homebrew/bin:$PATH"
+export JAVA_HOME="/opt/homebrew/opt/openjdk"
+export PYTHONUNBUFFERED=1
+
+cd /Users/ben/code/llm-speedway
+
+# Trap signals for debugging
+trap 'echo "=== GOT SIGTERM at $(date) ===" >> "{log_file}"' TERM
+trap 'echo "=== GOT SIGHUP at $(date) ===" >> "{log_file}"' HUP
+trap 'echo "=== GOT SIGINT at $(date) ===" >> "{log_file}"' INT
+trap 'rc=$?; echo "=== EXIT rc=$rc at $(date) ==="; echo $rc > "{log_dir}/exit_code.txt"; date > "{log_dir}/done.txt"' EXIT
+
+echo "=== RUNNING: {cmd} ==="
+{cmd}
+echo "=== CMD FINISHED rc=$? ==="
+'''
     
-    subprocess.run([
-        "tmux", "new-session", "-d", "-s", session_name, "bash", "-c", tmux_cmd
-    ])
+    # Small stagger to avoid burst resource contention
+    import time, random
+    time.sleep(0.1 + random.random() * 0.2)
+    
+    result = subprocess.run(
+        ["tmux", "new-session", "-d", "-s", session_name, "bash", "-lc", tmux_cmd],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        (log_dir / "tmux_error.txt").write_text(f"stdout: {result.stdout}\nstderr: {result.stderr}")
+        return None
     
     print(f"Started: {session_name}")
     return session_name

@@ -275,7 +275,7 @@ class TestUpdateIssue:
         original_updated = issue["updated_at"]
         
         import time
-        time.sleep(0.1)  # Ensure time difference
+        time.sleep(1.1)  # Ensure time difference (some impls have 1s resolution)
         
         resp = client.patch(f"/projects/{project['id']}/issues/{issue['id']}", json={
             "title": "Changed"

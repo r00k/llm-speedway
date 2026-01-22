@@ -162,7 +162,7 @@ def main():
     
     args = parser.parse_args()
     
-    run_single_experiment(
+    result = run_single_experiment(
         task=args.task,
         agent_name=args.agent,
         model=args.model,
@@ -170,6 +170,9 @@ def main():
         constraints=args.constraints,
         verbose=args.verbose,
     )
+    
+    # Exit non-zero on failure so orchestrator can detect issues
+    sys.exit(0 if result.status == "pass" else 1)
 
 
 if __name__ == "__main__":
