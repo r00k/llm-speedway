@@ -59,7 +59,7 @@ class TestCodexCLIRunner:
     def test_run_writes_prompt_file(self, tmp_path):
         runner = CodexCLIRunner()
         
-        with patch("subprocess.run") as mock_run:
+        with patch("harness.agents.codex_cli.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="output", stderr="", returncode=0
             )
@@ -72,7 +72,7 @@ class TestCodexCLIRunner:
     def test_run_cli_not_found(self, tmp_path):
         runner = CodexCLIRunner()
         
-        with patch("subprocess.run", side_effect=FileNotFoundError()):
+        with patch("harness.agents.codex_cli.subprocess.run", side_effect=FileNotFoundError()):
             result = runner.run(tmp_path, "test prompt", "model", timeout_sec=60)
         
         assert result.exit_code == 127
@@ -81,7 +81,7 @@ class TestCodexCLIRunner:
     def test_run_timeout(self, tmp_path):
         runner = CodexCLIRunner()
         
-        with patch("subprocess.run") as mock_run:
+        with patch("harness.agents.codex_cli.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="codex", timeout=60)
             result = runner.run(tmp_path, "test prompt", "model", timeout_sec=60)
         
@@ -93,7 +93,7 @@ class TestClaudeCodeRunner:
     def test_run_writes_prompt_file(self, tmp_path):
         runner = ClaudeCodeRunner()
         
-        with patch("subprocess.run") as mock_run:
+        with patch("harness.agents.claude_code.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="output", stderr="", returncode=0
             )
@@ -106,7 +106,7 @@ class TestClaudeCodeRunner:
     def test_run_cli_not_found(self, tmp_path):
         runner = ClaudeCodeRunner()
         
-        with patch("subprocess.run", side_effect=FileNotFoundError()):
+        with patch("harness.agents.claude_code.subprocess.run", side_effect=FileNotFoundError()):
             result = runner.run(tmp_path, "test prompt", "opus", timeout_sec=60)
         
         assert result.exit_code == 127
@@ -117,7 +117,7 @@ class TestAmpRunner:
     def test_run_writes_prompt_file(self, tmp_path):
         runner = AmpRunner()
         
-        with patch("subprocess.run") as mock_run:
+        with patch("harness.agents.amp.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 stdout="output", stderr="", returncode=0
             )
@@ -130,7 +130,7 @@ class TestAmpRunner:
     def test_run_cli_not_found(self, tmp_path):
         runner = AmpRunner()
         
-        with patch("subprocess.run", side_effect=FileNotFoundError()):
+        with patch("harness.agents.amp.subprocess.run", side_effect=FileNotFoundError()):
             result = runner.run(tmp_path, "test prompt", "smart", timeout_sec=60)
         
         assert result.exit_code == 127

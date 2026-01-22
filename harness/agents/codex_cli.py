@@ -1,10 +1,11 @@
 """Codex CLI agent adapter."""
 
 import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
-from .base import AgentRunner, AgentResult, run_with_streaming
+from .base import AgentRunner, AgentResult
 
 
 class CodexCLIRunner(AgentRunner):
@@ -30,8 +31,6 @@ class CodexCLIRunner(AgentRunner):
         full_prompt = "Read .speedway_prompt.md and implement the service exactly as specified. Create all necessary files including run.sh."
         
         # Use codex exec for non-interactive mode
-        # --dangerously-bypass-approvals-and-sandbox (--yolo): skip all permission prompts
-        # --skip-git-repo-check: workspace may not be a git repo
         cmd = [
             "codex", "exec",
             "--dangerously-bypass-approvals-and-sandbox",
@@ -41,10 +40,21 @@ class CodexCLIRunner(AgentRunner):
         
         env = os.environ.copy()
         
-        return run_with_streaming(
-            cmd=cmd,
-            cwd=workspace_dir,
-            env=env,
-            timeout_sec=timeout_sec,
-            run_dir=run_dir,
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=workspace_dir,
+                env=env,
+                timeout=timeout_sec,
+                capture_output=True,
+                text=True,
+            )
+            return AgentResult(
+                exit_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+        except subprocess.TimeoutExpired:
+            return AgentResult(exit_code=-1, stdout="", stderr="", timed_out=True)
+        except FileNotFoundError:
+            return AgentResult(exit_code=127, stdout="", stderr="codex not found")

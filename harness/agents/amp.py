@@ -1,10 +1,11 @@
 """Amp agent adapter."""
 
 import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
-from .base import AgentRunner, AgentResult, run_with_streaming
+from .base import AgentRunner, AgentResult
 
 
 class AmpRunner(AgentRunner):
@@ -29,9 +30,6 @@ class AmpRunner(AgentRunner):
         # Build the full prompt
         full_prompt = "Read .speedway_prompt.md and implement the service exactly as specified. Create all necessary files including run.sh."
         
-        # Use amp -x for execute mode
-        # --dangerously-allow-all: skip all permission prompts
-        # --mode: specify mode (free, rush, smart)
         cmd = [
             "amp",
             "-x", full_prompt,
@@ -41,10 +39,21 @@ class AmpRunner(AgentRunner):
         
         env = os.environ.copy()
         
-        return run_with_streaming(
-            cmd=cmd,
-            cwd=workspace_dir,
-            env=env,
-            timeout_sec=timeout_sec,
-            run_dir=run_dir,
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=workspace_dir,
+                env=env,
+                timeout=timeout_sec,
+                capture_output=True,
+                text=True,
+            )
+            return AgentResult(
+                exit_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+        except subprocess.TimeoutExpired:
+            return AgentResult(exit_code=-1, stdout="", stderr="", timed_out=True)
+        except FileNotFoundError:
+            return AgentResult(exit_code=127, stdout="", stderr="amp not found")
