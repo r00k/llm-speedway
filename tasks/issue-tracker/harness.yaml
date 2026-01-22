@@ -1,0 +1,5 @@
+port: 8080
+timeout_minutes: 60
+healthz_path: /healthz
+healthz_timeout_sec: 120
+spec_file: SPEC.md

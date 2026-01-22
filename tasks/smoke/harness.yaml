@@ -1,0 +1,3 @@
+port: 8090
+timeout_minutes: 5
+healthz_timeout_sec: 30
