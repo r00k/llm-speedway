@@ -7,29 +7,26 @@ Benchmark harness for timing agentic coding tools. Measures end-to-end time for 
 ```bash
 uv sync
 
-# Test Amp (smart mode)
-uv run python -m harness.run_experiment \
+# Start experiments on all agents (runs in tmux, non-blocking)
+uv run python -m harness.orchestrate start --task conference-scheduler
+
+# Start with specific agents and languages
+uv run python -m harness.orchestrate start \
   --task conference-scheduler \
-  --agent amp \
-  --model smart
+  --agents amp claude-code \
+  --languages Go Rust
 
-# Test Claude Code
-uv run python -m harness.run_experiment \
-  --task conference-scheduler \
-  --agent claude-code \
-  --model claude-opus-4-5
+# Run a matrix across multiple tasks
+uv run python -m harness.orchestrate matrix --tasks conference-scheduler issue-tracker
 
-# Test Codex CLI
-uv run python -m harness.run_experiment \
-  --task issue-tracker \
-  --agent codex \
-  --model codex-5.2
+# Check status of running experiments
+uv run python -m harness.orchestrate status
 
-# Run all 3 agents on the same task
-uv run python -m harness.run_all --task conference-scheduler
+# Tail logs from running experiments
+uv run python -m harness.orchestrate logs
 
-# Run all agents in parallel with language constraint
-uv run python -m harness.run_all --task conference-scheduler --language Go --parallel
+# Stop all running experiments
+uv run python -m harness.orchestrate stop
 ```
 
 ## How It Works
@@ -101,8 +98,8 @@ uv run python -m harness.run_experiment \
   --model smart \
   --write-own-tests
 
-# Or with run_all
-uv run python -m harness.run_all --task smoke --write-own-tests --parallel
+# Or run across all agents
+uv run python -m harness.orchestrate start --task smoke
 ```
 
 In this mode:

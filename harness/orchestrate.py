@@ -146,18 +146,20 @@ def start_matrix(
     agents: list[tuple[str, str]],  # (agent, model) pairs
     languages: list[str | None],
     constraints_sets: list[list[str] | None],
+    runs: int = 1,
 ) -> int:
     """Start a matrix of experiments. Returns count started."""
     started = 0
     skipped = 0
     
     for task, (agent, model), language, constraints in product(tasks, agents, languages, constraints_sets):
-        session = start_experiment(task, agent, model, language, constraints)
-        if session:
-            started += 1
-        else:
-            skipped += 1
-            print(f"Skipped (at capacity): {task}/{agent}/{language}")
+        for _ in range(runs):
+            session = start_experiment(task, agent, model, language, constraints)
+            if session:
+                started += 1
+            else:
+                skipped += 1
+                print(f"Skipped (at capacity): {task}/{agent}/{language}")
     
     print(f"\nStarted {started} experiments, skipped {skipped} (capacity: {MAX_CONCURRENT})")
     return started
@@ -257,11 +259,15 @@ def main():
                          help="Languages to test (use 'any' for no constraint)")
     start_p.add_argument("--constraint", action="append", dest="constraints",
                          help="Add a constraint")
+    start_p.add_argument("--runs", type=int, default=1,
+                         help="Number of runs per configuration")
     
     # matrix command
     matrix_p = subparsers.add_parser("matrix", help="Start a matrix of experiments")
     matrix_p.add_argument("--tasks", nargs="+", required=True)
     matrix_p.add_argument("--languages", nargs="+", default=["any"])
+    matrix_p.add_argument("--runs", type=int, default=1,
+                         help="Number of runs per configuration")
     
     # status command
     subparsers.add_parser("status", help="Show experiment status")
@@ -285,7 +291,7 @@ def main():
         languages = [None if l == "any" else l for l in args.languages]
         constraints_sets = [args.constraints] if args.constraints else [None]
         
-        start_matrix([args.task], agents, languages, constraints_sets)
+        start_matrix([args.task], agents, languages, constraints_sets, args.runs)
     
     elif args.command == "matrix":
         agents = [
@@ -294,7 +300,7 @@ def main():
             ("codex", "codex-5.2"),
         ]
         languages = [None if l == "any" else l for l in args.languages]
-        start_matrix(args.tasks, agents, languages, [None])
+        start_matrix(args.tasks, agents, languages, [None], args.runs)
     
     elif args.command == "status":
         status()
