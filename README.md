@@ -54,7 +54,10 @@ uv run python -m harness.run_all --task conference-scheduler --language Go --par
 |------|-------------|
 | `conference-scheduler` | Constraint satisfaction REST API (~10 hard constraints) |
 | `issue-tracker` | CRUD REST API with labels, comments, projects |
+| `language-rewrite` | Rewrite a Python rate limiter service into another language |
 | `smoke` | Minimal health-check endpoint (for testing harness) |
+
+See [tasks/README.md](tasks/README.md) for how to create new tasks.
 
 ## Language Constraint
 
