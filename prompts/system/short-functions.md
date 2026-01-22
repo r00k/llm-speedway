@@ -19,3 +19,4 @@ If a function starts to grow beyond 10 lines, extract parts into new functions.
 - Use appropriate data structures and algorithms
 - Include necessary validation
 - Choose any programming language you prefer
+- Make sure ALL tests pass before you stop working

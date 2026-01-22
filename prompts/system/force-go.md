@@ -16,3 +16,4 @@ You MUST implement this service in Go (Golang).
 - Handle edge cases and errors appropriately
 - Use appropriate data structures and algorithms
 - Include necessary validation
+- Make sure ALL tests pass before you stop working

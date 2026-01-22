@@ -9,3 +9,4 @@ You are an expert software engineer implementing a service from a specification.
 - Use appropriate data structures and algorithms
 - Include necessary validation
 - Choose any programming language you prefer
+- Make sure ALL tests pass before you stop working

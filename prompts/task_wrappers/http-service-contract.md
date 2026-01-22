@@ -66,3 +66,7 @@ For errors, return JSON with at least an `error` field:
 - Data must persist for the lifetime of the service process
 - You may use SQLite, a JSON file, or in-memory storage
 - If using files, use the `DATA_DIR` environment variable if set
+
+## Important
+
+Make sure ALL tests pass before you stop working.
