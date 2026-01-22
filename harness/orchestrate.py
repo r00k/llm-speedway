@@ -10,7 +10,7 @@ from itertools import product
 
 from .config import RUNS_DIR, RESULTS_DIR
 
-MAX_CONCURRENT = 6  # Max parallel tmux sessions (reduced to avoid API rate limiting)
+MAX_CONCURRENT = 9  # Max parallel tmux sessions (3 per API provider is safe)
 
 
 def generate_experiment_id(task: str, agent: str, model: str, language: str | None, constraints: list[str] | None) -> str:

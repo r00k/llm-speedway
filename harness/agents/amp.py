@@ -28,7 +28,7 @@ class AmpRunner(AgentRunner):
         prompt_file.write_text(prompt)
         
         # Build the full prompt
-        full_prompt = "Read .speedway_prompt.md and implement the service exactly as specified. Create all necessary files including run.sh."
+        full_prompt = "Read .speedway_prompt.md and implement the service exactly as specified. Create all necessary files including run.sh. Run the test suite with ./run_tests.sh and fix any failures. Do not stop until ALL tests pass."
         
         cmd = [
             "amp",
